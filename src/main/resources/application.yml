@@ -1,0 +1,11 @@
+jwt:
+    secret: jwtsecretkey
+spring:
+    datasource:
+        password: password
+        platform: mysql
+        url: jdbc:mysql://localhost/jwt?createDatabaseIfNotExist=true&autoReconnect=true&useSSL=false
+        username: root
+    jpa:
+        hibernate:
+            ddl-auto: update
