@@ -2,7 +2,8 @@
 
 This project is about how to use spring security username/password from database and exchanging token using JWT 
 
-This is Spring Boot V2 Application for Securing a REST API with JSON Web Token (JWT)
+This is Spring Boot V2 Application for Securing a REST API with JSON Web Token (JWT). 
+See more details : https://medium.com/@sopheamak/springboot-security-with-jwt-fca1446790ba
 
 # Technologies
 
