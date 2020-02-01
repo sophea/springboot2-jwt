@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.sma.security.config.JwtTokenService;
 
+import javax.servlet.http.HttpServletRequest;
+
 @RestController
 @CrossOrigin
 public class JwtTokenController {
@@ -34,13 +36,13 @@ public class JwtTokenController {
     private JwtUserDetailsService userDetailsService;
 
     @RequestMapping(value = "/auth/token", method = RequestMethod.POST)
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody UserDTO authenticationRequest) throws Exception {
+    public ResponseEntity<?> createAuthenticationToken(HttpServletRequest request, @RequestBody UserDTO authenticationRequest) throws Exception {
 
         final Authentication auth = authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        return ResponseEntity.ok(new JwtResponse(jwtTokenUtil.generateToken(auth)));
+        return ResponseEntity.ok(new JwtResponse(jwtTokenUtil.generateToken(auth, request)));
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)

@@ -4,7 +4,6 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -40,15 +39,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         final Optional<String> jwt = getJwtFromRequest(request);
         jwt.ifPresent(token -> {
             try {
-                if (jwtTokenService.validateToken(token)) {
+                if (jwtTokenService.validateToken(token) &&
+                        jwtTokenService.isClientInfoMatch(request, token)) {
                     setSecurityContext(new WebAuthenticationDetailsSource().buildDetails(request), token);
                 }
             } catch (IllegalArgumentException | MalformedJwtException | ExpiredJwtException e) {
-                logger.error("Unable to get JWT Token or JWT Token has expired");
+                logger.error("Unable to get JWT Token or JWT Token has expired or clientInfo is not matched");
                 //UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("anonymous", "anonymous", null);
                 //SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         });
+
 
         filterChain.doFilter(request, response);
     }
@@ -67,7 +68,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     }
 
     private static Optional<String> getJwtFromRequest(HttpServletRequest request) {
-        String bearerToken = request.getHeader(AUTHORIZATION);
+        final String bearerToken = request.getHeader(AUTHORIZATION);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER)) {
             return Optional.of(bearerToken.substring(7));
         }

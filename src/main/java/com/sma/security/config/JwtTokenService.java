@@ -1,26 +1,28 @@
 package com.sma.security.config;
 
-import java.io.Serializable;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
+import com.sma.security.utils.WebHelper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
-public class JwtTokenService implements Serializable {
-
-    private static final long serialVersionUID = -2550185165626007488L;
+public class JwtTokenService {
 
     public static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60;
+
     public static final String ROLES = "ROLES";
 
     @Value("${jwt.secret}")
@@ -40,10 +42,19 @@ public class JwtTokenService implements Serializable {
        return getClaimFromToken(token, claims -> (List) claims.get(ROLES));
     }
 
+    public String getIpAddress(String token) {
+        return  getClaimFromToken(token, claims -> (String) claims.get("IP"));
+    }
+
+    public String getUserAgent(String token) {
+        return  getClaimFromToken(token, claims -> (String) claims.get("UA"));
+    }
+
     public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
     }
+
     //for retrieving any information from token we will need the secret key
     private Claims getAllClaimsFromToken(String token) {
         return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
@@ -55,8 +66,22 @@ public class JwtTokenService implements Serializable {
         return expiration.before(new Date());
     }
 
+    public boolean isClientInfoMatch(HttpServletRequest request, String token) {
+        return isClientIPMatched(request, token) && isUserAgentMatched(request, token);
+    }
+
+    public boolean isClientIPMatched(HttpServletRequest request, String token) {
+        return WebHelper.getClientIpAddress(request).equals(getIpAddress(token));
+    }
+
+    public boolean isUserAgentMatched(HttpServletRequest request, String token) {
+        return WebHelper.getUserAgent(request).equals(getUserAgent(token));
+    }
+
+
+
     //generate token for user
-    public String generateToken(Authentication authentication) {
+    public String generateToken(Authentication authentication, HttpServletRequest request) {
         final Map<String, Object> claims = new HashMap<>();
         final UserDetails user = (UserDetails) authentication.getPrincipal();
 
@@ -65,7 +90,10 @@ public class JwtTokenService implements Serializable {
                                                  .map(GrantedAuthority::getAuthority)
                                                  .collect(Collectors.toList());
 
+
         claims.put(ROLES, roles);
+        claims.put("IP", WebHelper.getClientIpAddress(request));
+        claims.put("UA", WebHelper.getUserAgent(request));
         return generateToken(claims, user.getUsername());
     }
 
