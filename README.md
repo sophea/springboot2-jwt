@@ -45,4 +45,11 @@ response back
 curl http://localhost:8080/test
 
 - Login API
-curl http://locathost:8080/secure
+curl http://localhost:8080/secure
+
+````
+curl -X GET \
+  http://localhost:8080/secure \
+  -H 'content-type: application/json' \
+  -H 'Authorization: Bearer LPHUSMdNakAeyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0IiwiUk9MRVMiOlsiUk9MRV9VU0VSIl0sIklQIjoiMDowOjA6MDowOjA6MDoxIiwiVUEiOiJjdXJsLzcuNTQuMCIsImV4cCI6MTU4MDU0Mzg5MSwiaWF0IjoxNTgwNTI1ODkxfQ.7Itn-oZxyTptFDO2IJlIWYl1NXAIGqTkWsjKrtWpPcC-wpSjO1P3O6skQIadKuwD9TONbtFP4kFFIk16adE25Q'
+````

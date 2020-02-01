@@ -1,5 +1,6 @@
 package com.sma.security.config;
 
+import com.sma.security.utils.EncrypterHelper;
 import com.sma.security.utils.WebHelper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -11,10 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +22,9 @@ public class JwtTokenService {
     public static final long JWT_TOKEN_VALIDITY = 5 * 60 * 60;
 
     public static final String ROLES = "ROLES";
+    public static final String JWT = "JWT_TOKEN";
+    public static final String IP = "IP";
+    public static final String UA = "UA";
 
     @Value("${jwt.secret}")
     private String secret;
@@ -43,11 +44,11 @@ public class JwtTokenService {
     }
 
     public String getIpAddress(String token) {
-        return  getClaimFromToken(token, claims -> (String) claims.get("IP"));
+        return  getClaimFromToken(token, claims -> (String) claims.get(IP));
     }
 
     public String getUserAgent(String token) {
-        return  getClaimFromToken(token, claims -> (String) claims.get("UA"));
+        return  getClaimFromToken(token, claims -> (String) claims.get(UA));
     }
 
     public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
@@ -57,6 +58,8 @@ public class JwtTokenService {
 
     //for retrieving any information from token we will need the secret key
     private Claims getAllClaimsFromToken(String token) {
+        //remove the random String
+        token = EncrypterHelper.decrypt(token, JWT);
         return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
     }
 
@@ -67,6 +70,11 @@ public class JwtTokenService {
     }
 
     public boolean isClientInfoMatch(HttpServletRequest request, String token) {
+        //skip localhost
+        final String ip = WebHelper.getClientIpAddress(request);
+        if (Arrays.asList("127.0.0.1", "0:0:0:0:0:0:0:1").contains(ip)) {
+            return true;
+        }
         return isClientIPMatched(request, token) && isUserAgentMatched(request, token);
     }
 
@@ -92,8 +100,8 @@ public class JwtTokenService {
 
 
         claims.put(ROLES, roles);
-        claims.put("IP", WebHelper.getClientIpAddress(request));
-        claims.put("UA", WebHelper.getUserAgent(request));
+        claims.put(IP, WebHelper.getClientIpAddress(request));
+        claims.put(UA, WebHelper.getUserAgent(request));
         return generateToken(claims, user.getUsername());
     }
 
@@ -104,13 +112,17 @@ public class JwtTokenService {
     //   compaction of the JWT to a URL-safe string
     private String generateToken(Map<String, Object> claims, String subject) {
         final long now = System.currentTimeMillis();
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(now + JWT_TOKEN_VALIDITY * 1000))
                 .signWith(SignatureAlgorithm.HS512, secret).compact();
+
+
+        return EncrypterHelper.encrypt(token, JWT);
     }
+
 
     //validate token
     public Boolean validateToken(String token) {
