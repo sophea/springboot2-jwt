@@ -21,6 +21,7 @@ import java.security.spec.KeySpec;
 public final class EncrypterHelper {
     private static final String KEY = "#sma#key#Ra_3weqZ3owgPT9Y6Bcx";
     private static final String PBE_WITH_MD_5_AND_DES_MODE = "PBEWithMD5AndDES";
+    public static final String UTF_8 = "UTF8";
     private static Cipher ecipher;
     private static Cipher dcipher;
     private static EncrypterHelper instance = new EncrypterHelper();
@@ -70,16 +71,12 @@ public final class EncrypterHelper {
     public static String decrypt(String encodeStr, String hashField) {
         // Decode using utf-8
         String decrypt = instance.decrypt(encodeStr);
-        //Logger.debug(MchEncrypter.class, decrypt);
         if (decrypt == null) {
             return null;
         }
         decrypt = decrypt.replace(KEY, "");
         final String result = decrypt.replace(encodeHasField(hashField), "");
-        if (result.equals(decrypt)) {
-            return null;
-        }
-        return result;
+        return result.equals(decrypt) ? null : result;
     }
 
     public static void main(String[] args) {
@@ -100,7 +97,7 @@ public final class EncrypterHelper {
     public static String encrypt(String str) {
         try {
             // Encode the string into bytes using utf-8
-            final byte[] utf8 = str.getBytes("UTF8");
+            final byte[] utf8 = str.getBytes(UTF_8);
             // Encrypt
             final byte[] enc = ecipher.doFinal(utf8);
             // Encode bytes to base64 to get a string
@@ -125,10 +122,11 @@ public final class EncrypterHelper {
             // Decrypt
             final byte[] utf8 = dcipher.doFinal(dec);
             // Decode using utf-8
-            return new String(utf8, "UTF8");
+            return new String(utf8, UTF_8);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
         return null;
     }
+
 }
